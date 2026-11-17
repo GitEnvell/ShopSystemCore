@@ -1,12 +1,13 @@
 ﻿using System;
 
-namespace GroceryStore
+namespace ShopSystemWeb
 {
+    // Класс, описывающий одну строку (позицию) в документе поставки
     public class SupplyItem
     {
-        public Product Product { get; private set; }
-        public int Quantity { get; private set; }
-        public decimal UnitPrice { get; private set; }
+        public Product Product { get; private set; } // Ссылка на товар
+        public int Quantity { get; private set; } // Количество товара
+        public decimal UnitPrice { get; private set; } // Закупочная цена за единицу
 
         public SupplyItem(Product product, int quantity, decimal unitPrice)
         {
@@ -18,6 +19,7 @@ namespace GroceryStore
             UnitPrice = unitPrice;
         }
 
+        // Подсчет стоимости данной позиции (Кол-во * Цена)
         public decimal GetTotalCost() => Quantity * UnitPrice;
     }
 }

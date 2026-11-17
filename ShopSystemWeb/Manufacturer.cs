@@ -1,11 +1,12 @@
 ﻿using System;
 
-namespace GroceryStore
+namespace ShopSystemWeb
 {
+    // Класс, описывающий компанию-производителя
     public class Manufacturer
     {
-        public string Name { get; private set; }
-        public string INN { get; private set; }
+        public string Name { get; private set; } // Название компании
+        public string INN { get; private set; } // ИНН производителя
 
         public Manufacturer(string name, string inn)
         {

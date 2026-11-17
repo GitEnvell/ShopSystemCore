@@ -1,0 +1,421 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ИС "Магазин продуктов"</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #1a1a1a;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+            .card h3 {
+                margin-top: 0;
+                color: #007bff;
+                border-bottom: 2px solid #eee;
+                padding-bottom: 10px;
+            }
+
+        input, select {
+            padding: 8px;
+            margin: 5px 0;
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 100%;
+            margin-top: 10px;
+            transition: 0.3s;
+        }
+
+            button:hover {
+                background-color: #0056b3;
+            }
+
+            button.danger {
+                background-color: #dc3545;
+            }
+
+                button.danger:hover {
+                    background-color: #c82333;
+                }
+
+            button.success {
+                background-color: #28a745;
+            }
+
+                button.success:hover {
+                    background-color: #218838;
+                }
+
+            button.warning {
+                background-color: #ff9800;
+            }
+
+                button.warning:hover {
+                    background-color: #e68a00;
+                }
+
+            button.secondary {
+                background-color: #6c757d;
+            }
+
+                button.secondary:hover {
+                    background-color: #5a6268;
+                }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            background: white;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #343a40;
+            color: white;
+        }
+
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background: #e9ecef;
+            border-radius: 4px;
+            font-weight: bold;
+            color: #333;
+            font-size: 14px;
+            word-wrap: break-word;
+        }
+
+        hr {
+            margin: 15px 0;
+            border: 0;
+            border-top: 1px solid #eee;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Панель управления ИС "Магазин продуктов"</h1>
+
+        <div class="grid">
+            <!-- Блок 1: Товары -->
+            <div class="card">
+                <h3>Управление товарами</h3>
+                <input type="text" id="pName" placeholder="Название товара">
+                <input type="number" id="pPrice" placeholder="Цена">
+                <input type="number" id="pStock" placeholder="Начальный остаток">
+                <button onclick="addProduct()">Добавить товар</button>
+
+                <hr>
+
+                <input type="number" id="delId" placeholder="ID товара для удаления">
+                <button class="danger" onclick="deleteProduct()">Удалить товар</button>
+
+                <hr>
+
+                <input type="number" id="updId" placeholder="ID товара для изменения">
+                <input type="number" id="updPrice" placeholder="Новая цена">
+                <input type="number" id="updStock" placeholder="Новый остаток">
+                <button class="warning" onclick="updateProduct()">Изменить товар</button>
+
+                <hr>
+
+                <input type="text" id="searchName" placeholder="Название для поиска">
+                <button onclick="findProduct()">Найти товар</button>
+                <div id="searchResult" class="result" style="display:none;"></div>
+            </div>
+
+            <!-- Блок 2: Производители и Операции -->
+            <div class="card">
+                <h3>Справочник производителей</h3>
+                <input type="text" id="mName" placeholder="Название компании">
+                <input type="text" id="mInn" placeholder="ИНН">
+                <button onclick="addManufacturer()">Добавить производителя</button>
+                <button onclick="loadManufacturers()" class="secondary">Показать всех</button>
+                <div id="manufResult" class="result" style="display:none;"></div>
+
+                <hr>
+
+                <h3>Торговые операции</h3>
+                <input type="number" id="saleId" placeholder="ID товара (для продажи)">
+                <input type="number" id="saleQty" placeholder="Количество (для продажи)">
+                <button class="success" onclick="makeSale()">Оформить продажу</button>
+
+                <hr>
+
+                <input type="number" id="supId" placeholder="ID товара (для поставки)">
+                <input type="number" id="supQty" placeholder="Количество (для поставки)">
+                <button onclick="addSupply()">Принять поставку</button>
+            </div>
+        </div>
+
+        <div class="grid">
+            <!-- Блок 3: Документы (Акты расхождения) -->
+            <div class="card">
+                <h3>Документы (Акты)</h3>
+                <input type="text" id="actNum" placeholder="Номер акта расхождения">
+                <input type="text" id="actReason" placeholder="Причина расхождения">
+                <button class="danger" onclick="createAct()">Создать акт расхождения</button>
+
+                <hr>
+                <button onclick="loadActs()" class="secondary">Показать все акты</button>
+                <div id="actsList" class="result" style="display:none; margin-bottom: 10px;"></div>
+
+                <hr>
+                <input type="text" id="updActNum" placeholder="Номер акта (для изменения)">
+                <button class="success" onclick="changeActStatus(true)">Подтвердить акт</button>
+                <button class="danger" onclick="changeActStatus(false)">Отклонить акт</button>
+            </div>
+
+            <!-- Блок 4: Отчетность -->
+            <div class="card">
+                <h3>Отчетность</h3>
+                <button onclick="getReport()">Сформировать отчет</button>
+                <button class="warning" onclick="exportReport()">Экспорт отчета (текст)</button>
+                <div id="reportResult" class="result" style="display:none;"></div>
+            </div>
+        </div>
+
+        <!-- Блок 5: Таблица остатков -->
+        <div class="card">
+            <h3>Текущие остатки на складе (ID нужен для операций)</h3>
+            <button onclick="loadStock()" style="width: auto; margin-bottom: 10px;">Обновить список</button>
+            <table id="stockTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Название</th>
+                        <th>Цена</th>
+                        <th>Остаток</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = '/api/Store';
+
+        function showAlert(text) {
+            alert(text);
+        }
+
+        // --- БЛОК ТОВАРОВ ---
+
+        async function loadStock() {
+            const response = await fetch(`${API_URL}/stock`);
+            const products = await response.json();
+            const tbody = document.querySelector('#stockTable tbody');
+            tbody.innerHTML = '';
+
+            products.forEach((p, index) => {
+                tbody.innerHTML += `
+                        <tr>
+                            <td><b>${index}</b></td>
+                            <td>${p.name}</td>
+                            <td>${p.price} руб.</td>
+                            <td>${p.stockQuantity} шт.</td>
+                        </tr>
+                    `;
+            });
+        }
+
+        async function addProduct() {
+            const name = document.getElementById('pName').value;
+            const price = document.getElementById('pPrice').value;
+            const stock = document.getElementById('pStock').value;
+            if (!name || !price || !stock) { showAlert("Заполните все поля!"); return; }
+
+            const response = await fetch(`${API_URL}/add-product?name=${name}&price=${price}&stock=${stock}`, { method: 'POST' });
+            showAlert(await response.text());
+            loadStock();
+        }
+
+        async function deleteProduct() {
+            const id = document.getElementById('delId').value;
+            if (id === '') { showAlert("Введите ID!"); return; }
+
+            const response = await fetch(`${API_URL}/delete-product?productId=${id}`, { method: 'DELETE' });
+            showAlert(await response.text());
+            loadStock();
+        }
+
+        async function updateProduct() {
+            const id = document.getElementById('updId').value;
+            const price = document.getElementById('updPrice').value;
+            const stock = document.getElementById('updStock').value;
+            if (id === '' || price === '' || stock === '') { showAlert("Заполните все поля!"); return; }
+
+            const response = await fetch(`${API_URL}/update-product?productId=${id}&newPrice=${price}&newStock=${stock}`, { method: 'PUT' });
+            showAlert(await response.text());
+            loadStock();
+        }
+
+        async function findProduct() {
+            const name = document.getElementById('searchName').value;
+            if (!name) { showAlert("Введите название для поиска!"); return; }
+
+            const response = await fetch(`${API_URL}/find-product?name=${name}`);
+            const resDiv = document.getElementById('searchResult');
+            resDiv.style.display = 'block';
+
+            if (response.ok) {
+                const data = await response.json();
+                resDiv.innerHTML = "Найдено: " + data.map(p => `${p.name} (${p.price} руб., остаток: ${p.stockQuantity})`).join(', ');
+            } else {
+                resDiv.innerText = "Товары не найдены.";
+            }
+        }
+
+        // --- БЛОК ПРОИЗВОДИТЕЛЕЙ ---
+
+        async function addManufacturer() {
+            const name = document.getElementById('mName').value;
+            const inn = document.getElementById('mInn').value;
+            if (!name || !inn) { showAlert("Заполните все поля!"); return; }
+
+            const response = await fetch(`${API_URL}/add-manufacturer?name=${name}&inn=${inn}`, { method: 'POST' });
+            showAlert(await response.text());
+
+            document.getElementById('mName').value = '';
+            document.getElementById('mInn').value = '';
+        }
+
+        async function loadManufacturers() {
+            const response = await fetch(`${API_URL}/manufacturers`);
+            const data = await response.json();
+            const resDiv = document.getElementById('manufResult');
+            resDiv.style.display = 'block';
+
+            if (data.length === 0) {
+                resDiv.innerText = "Список производителей пуст.";
+            } else {
+                resDiv.innerHTML = "Производители: " + data.map(m => `${m.name} (ИНН: ${m.inn})`).join(', ');
+            }
+        }
+
+        // --- БЛОК ОПЕРАЦИЙ ---
+
+        async function makeSale() {
+            const id = document.getElementById('saleId').value;
+            const qty = document.getElementById('saleQty').value;
+            if (id === '' || !qty) { showAlert("Заполните поля!"); return; }
+
+            const response = await fetch(`${API_URL}/make-sale?productId=${id}&quantity=${qty}`, { method: 'POST' });
+            showAlert(await response.text());
+            loadStock();
+        }
+
+        async function addSupply() {
+            const id = document.getElementById('supId').value;
+            const qty = document.getElementById('supQty').value;
+            if (id === '' || !qty) { showAlert("Заполните поля!"); return; }
+
+            const response = await fetch(`${API_URL}/add-supply?productId=${id}&quantity=${qty}`, { method: 'POST' });
+            showAlert(await response.text());
+            loadStock();
+        }
+
+        // --- БЛОК ДОКУМЕНТОВ ---
+
+        async function createAct() {
+            const num = document.getElementById('actNum').value;
+            const reason = document.getElementById('actReason').value;
+            if (!num || !reason) { showAlert("Заполните все поля!"); return; }
+
+            const response = await fetch(`${API_URL}/create-discrepancy-act?actNumber=${num}&reason=${reason}`, { method: 'POST' });
+            showAlert(await response.text());
+        }
+
+        async function loadActs() {
+            const response = await fetch(`${API_URL}/get-acts`);
+            const data = await response.json();
+            const resDiv = document.getElementById('actsList');
+            resDiv.style.display = 'block';
+
+            if (data.length === 0) {
+                resDiv.innerText = "Нет созданных актов.";
+            } else {
+                resDiv.innerHTML = "<b>Список актов:</b><br>" + data.map(a =>
+                    `Акт №${a.actNumber}: ${a.reason} — Статус: ${a.isConfirmed ? "✅ Подтвержден" : "❌ Отклонен"}`
+                ).join('<br>');
+            }
+        }
+
+        async function changeActStatus(confirm) {
+            const num = document.getElementById('updActNum').value;
+            if (!num) { showAlert("Введите номер акта!"); return; }
+
+            const response = await fetch(`${API_URL}/change-act-status?actNumber=${num}&confirm=${confirm}`, { method: 'PUT' });
+            showAlert(await response.text());
+            loadActs(); // Обновляем список актов
+        }
+
+        // --- БЛОК ОТЧЕТОВ ---
+
+        async function getReport() {
+            const response = await fetch(`${API_URL}/report`);
+            const text = await response.text();
+            const resDiv = document.getElementById('reportResult');
+            resDiv.style.display = 'block';
+            resDiv.innerText = text;
+        }
+
+        async function exportReport() {
+            const response = await fetch(`${API_URL}/export-report`);
+            const text = await response.text();
+            const resDiv = document.getElementById('reportResult');
+            resDiv.style.display = 'block';
+            resDiv.innerText = text;
+        }
+
+        // Загружаем данные при старте
+        window.onload = loadStock;
+    </script>
+</body>
+</html>
