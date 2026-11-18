@@ -1,28 +1,40 @@
-﻿using System;
-
-namespace ShopSystemWeb
+﻿namespace ShopSystemWeb
 {
-    // Класс документа "Акт расхождения", фиксирующего ошибки при приемке
+    // Сущность "Акт расхождения" — документ при несоответствии поставки
+    // Реализует конечный автомат: Создан → Подтверждён/Отклонён
     public class DiscrepancyAct
     {
-        public string ActNumber { get; private set; } // Номер акта
-        public DateTime CreationDate { get; private set; } // Дата создания
-        public string Reason { get; private set; } // Причина расхождения
-        public bool IsConfirmed { get; private set; } // Статус (подтвержден/отклонен)
+        public int Id { get; set; }
+        public string ActNumber { get; set; }
+        public string Reason { get; set; }
+        public DateTime CreationDate { get; set; }
+        public bool IsConfirmed { get; set; }
+
+        public DiscrepancyAct() { }
 
         public DiscrepancyAct(string actNumber, string reason)
         {
-            if (string.IsNullOrWhiteSpace(actNumber)) throw new ArgumentException("Номер акта обязателен");
+            if (string.IsNullOrWhiteSpace(actNumber))
+                throw new ArgumentException("Номер акта не может быть пустым");
+            if (string.IsNullOrWhiteSpace(reason))
+                throw new ArgumentException("Причина не может быть пустой");
+
             ActNumber = actNumber;
-            CreationDate = DateTime.Now;
             Reason = reason;
-            IsConfirmed = false; // По умолчанию не подтвержден
+            CreationDate = DateTime.Now;
+            IsConfirmed = false;
         }
 
-        // Метод подтверждения акта (расхождение действительное)
-        public void Confirm() { IsConfirmed = true; }
+        // Подтвердить акт (руководителем)
+        public void Confirm()
+        {
+            IsConfirmed = true;
+        }
 
-        // Метод отклонения акта (расхождения нет)
-        public void Reject() { IsConfirmed = false; }
+        // Отклонить акт
+        public void Reject()
+        {
+            IsConfirmed = false;
+        }
     }
 }

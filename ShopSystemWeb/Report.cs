@@ -1,33 +1,25 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-
-namespace ShopSystemWeb
+﻿namespace ShopSystemWeb
 {
-    // Класс для формирования отчетов по продажам
+    // Класс отчёта — агрегирует данные о продажах за период
     public class Report
     {
-        public DateTime StartDate { get; private set; } // Начало периода
-        public DateTime EndDate { get; private set; } // Конец периода
-        public decimal TotalRevenue { get; private set; } // Итоговая выручка за период
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+        public decimal TotalRevenue { get; set; }
 
         public Report(DateTime startDate, DateTime endDate)
         {
-            if (startDate > endDate) throw new ArgumentException("Дата начала не может быть позже даты окончания");
             StartDate = startDate;
             EndDate = endDate;
+            TotalRevenue = 0;
         }
 
-        // Метод генерации отчета на основе списка всех продаж
+        // Сформировать отчёт: отфильтровать продажи по датам и посчитать сумму
         public void Generate(List<Sale> sales)
         {
-            if (sales == null) throw new ArgumentNullException(nameof(sales));
-
-            // Фильтруем продажи: только завершенные и попадающие в заданный период
-            var filteredSales = sales.Where(s => s.IsCompleted && s.SaleDate >= StartDate && s.SaleDate <= EndDate);
-
-            // Суммируем выручку по отфильтрованным продажам
-            TotalRevenue = filteredSales.Sum(s => s.GetTotalAmount());
+            TotalRevenue = sales
+                .Where(s => s.Date >= StartDate && s.Date < EndDate)
+                .Sum(s => s.TotalAmount);
         }
     }
 }

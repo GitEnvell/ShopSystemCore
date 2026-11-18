@@ -1,24 +1,29 @@
-﻿using System;
-
-namespace ShopSystemWeb
+﻿namespace ShopSystemWeb
 {
-    // Класс, описывающий одну строку (позицию) в чеке продажи
+    // Позиция чека — одна строка в продаже (товар + количество)
     public class SaleItem
     {
-        public Product Product { get; private set; } // Ссылка на товар
-        public int Quantity { get; private set; } // Количество проданного товара
-        public decimal Price { get; private set; } // Цена на момент продажи
+        public int Id { get; set; }
+        public Product Product { get; set; }
+        public int Quantity { get; set; }
+        public decimal Price { get; set; } // Цена на момент продажи
+
+        public SaleItem() { }
 
         public SaleItem(Product product, int quantity)
         {
-            Product = product ?? throw new ArgumentNullException(nameof(product));
-            if (quantity <= 0) throw new ArgumentException("Количество должно быть больше нуля");
+            if (quantity <= 0)
+                throw new ArgumentException("Количество должно быть положительным");
 
+            Product = product;
             Quantity = quantity;
-            Price = product.Price; // Фиксируем цену товара на момент продажи
+            Price = product.Price; // Фиксируем цену на момент продажи
         }
 
-        // Подсчет стоимости позиции (Кол-во * Цена)
-        public decimal GetTotalCost() => Quantity * Price;
+        // Рассчитать стоимость позиции
+        public decimal CalculateCost()
+        {
+            return Price * Quantity;
+        }
     }
 }

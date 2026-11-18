@@ -1,77 +1,74 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace ShopSystemWeb.Controllers
 {
+    // Основной API-контроллер: принимает HTTP-запросы от клиента
     [Route("api/[controller]")]
     [ApiController]
     public class StoreController : ControllerBase
     {
-        // Статические списки для хранения данных в памяти (имитация БД)
-        private static List<Product> _products = new List<Product>();
-        private static List<Manufacturer> _manufacturers = new List<Manufacturer>();
-        private static List<Sale> _sales = new List<Sale>();
-        private static List<DiscrepancyAct> _acts = new List<DiscrepancyAct>(); // Список для актов
+        private readonly AppDbContext _context; // Контекст БД (внедряется через DI)
 
-        // Тестовые пользователи
-        private static Manager _manager = new Manager("admin", "Иванов И.И.", "Администрация");
-        private static Seller _seller = new Seller("seller", "Петров П.П.", 1);
-
-        // Инициализация тестовыми данными при первом запуске сервера
-        static StoreController()
+        // Конструктор: EF Core сам передаст сюда экземпляр AppDbContext
+        public StoreController(AppDbContext context)
         {
-            _products.Add(new Product("Молоко", 80m, 50));
-            _products.Add(new Product("Хлеб", 40m, 30));
-            _manufacturers.Add(new Manufacturer("Молокозавод №1", "1234567890"));
-            _manufacturers.Add(new Manufacturer("Хлебозавод", "0987654321"));
+            _context = context;
         }
 
-        // 1. Показать все товары на складе
+        // 1. Получить все товары со склада
         [HttpGet("stock")]
         public IActionResult GetStock()
         {
-            return Ok(_products);
+            return Ok(_context.Products.ToList());
         }
 
-        // 2. Добавить товар в справочник
+        // 2. Добавить новый товар в справочник
         [HttpPost("add-product")]
         public IActionResult AddProduct([FromQuery] string name, [FromQuery] decimal price, [FromQuery] int stock)
         {
             try
             {
-                var newProduct = new Product(name, price, stock);
-                _products.Add(newProduct);
-                return Ok($"Товар '{name}' успешно добавлен!");
+                var product = new Product(name, price, stock);
+                _context.Products.Add(product);
+                _context.SaveChanges(); // Сохраняем в БД
+                return Ok($"Товар '{name}' добавлен! ID: {product.Id}");
             }
             catch (Exception ex)
             {
-                return BadRequest($"Ошибка: {ex.Message}");
+                return BadRequest($"Ошибка валидации: {ex.Message}");
             }
         }
 
-        // 3. Показать всех производителей
+        // 3. Получить список производителей
         [HttpGet("manufacturers")]
         public IActionResult GetManufacturers()
         {
-            return Ok(_manufacturers);
+            return Ok(_context.Manufacturers.ToList());
         }
 
-        // 4. Оформить продажу
+        // 4. Оформить продажу (списывает товар со склада)
         [HttpPost("make-sale")]
         public IActionResult MakeSale([FromQuery] int productId, [FromQuery] int quantity)
         {
-            if (productId < 0 || productId >= _products.Count)
+            var product = _context.Products.Find(productId);
+            if (product == null)
                 return NotFound("Товар не найден");
-
-            var product = _products[productId];
 
             try
             {
-                var sale = new Sale(_seller);
-                sale.AddItem(new SaleItem(product, quantity));
-                sale.CompleteSale();
-                _sales.Add(sale);
+                var seller = _context.Users.OfType<Seller>().FirstOrDefault();
+                if (seller == null)
+                    return BadRequest("Продавец не найден. Добавьте пользователя с ролью Seller.");
 
-                return Ok($"Продажа оформлена! Сумма: {sale.GetTotalAmount()} руб. Остаток товара: {product.StockQuantity}");
+                var sale = new Sale(seller);
+                sale.AddItem(new SaleItem(product, quantity));
+                sale.CompleteSale(); // Списывает остаток у product
+
+                _context.Sales.Add(sale);
+                _context.SaveChanges();
+
+                return Ok($"Продажа оформлена! Сумма: {sale.GetTotalAmount()} руб. Остаток: {product.StockQuantity}");
             }
             catch (Exception ex)
             {
@@ -79,55 +76,65 @@ namespace ShopSystemWeb.Controllers
             }
         }
 
-        // 5. Получить отчет за сегодня (упрощенно)
+        // 5. Отчёт о выручке за текущие сутки
         [HttpGet("report")]
         public IActionResult GetReport()
         {
+            var sales = _context.Sales.ToList();
             var report = new Report(DateTime.Now.AddDays(-1), DateTime.Now.AddDays(1));
-            report.Generate(_sales);
-            return Ok($"Общая выручка за сегодня: {report.TotalRevenue} руб.");
+            report.Generate(sales);
+            return Ok($"Выручка за сегодня: {report.TotalRevenue} руб.");
         }
 
         // 6. Удалить товар из справочника
         [HttpDelete("delete-product")]
         public IActionResult DeleteProduct([FromQuery] int productId)
         {
-            if (productId < 0 || productId >= _products.Count)
+            var product = _context.Products.Find(productId);
+            if (product == null)
                 return NotFound("Товар не найден");
 
-            var product = _products[productId];
-            _products.RemoveAt(productId);
-            return Ok($"Товар '{product.Name}' удален из справочника.");
+            _context.Products.Remove(product);
+            _context.SaveChanges();
+            return Ok($"Товар '{product.Name}' удалён.");
         }
 
-        // 7. Поиск товара по названию
+        // 7. Поиск товара по названию (без учёта регистра)
         [HttpGet("find-product")]
         public IActionResult FindProduct([FromQuery] string name)
         {
-            var foundProducts = _products.Where(p => p.Name.ToLower().Contains(name.ToLower())).ToList();
-            if (foundProducts.Count == 0)
+            var found = _context.Products
+                .Where(p => p.Name.ToLower().Contains(name.ToLower()))
+                .ToList();
+
+            if (found.Count == 0)
                 return NotFound("Товары не найдены");
 
-            return Ok(foundProducts);
+            return Ok(found);
         }
 
-        // 8. Оформить поставку (приёмка товара)
+        // 8. Оформить приход товара (поставку)
         [HttpPost("add-supply")]
         public IActionResult AddSupply([FromQuery] int productId, [FromQuery] int quantity)
         {
-            if (productId < 0 || productId >= _products.Count)
+            var product = _context.Products.Find(productId);
+            if (product == null)
                 return NotFound("Товар не найден");
-
-            var product = _products[productId];
 
             try
             {
-                var manufacturer = _manufacturers[0]; // Берем первого производителя для примера
-                var supply = new Supply(manufacturer);
-                supply.AddItem(new SupplyItem(product, quantity, product.Price / 2)); // Закупочная цена = половина от продажной
-                supply.AcceptSupply(); // Принимаем (добавляем остатки)
+                var manufacturer = _context.Manufacturers.FirstOrDefault();
+                if (manufacturer == null)
+                    return BadRequest("Сначала добавьте производителя");
 
-                return Ok($"Поставка принята! Товар '{product.Name}' добавлен на склад. Новый остаток: {product.StockQuantity}");
+                var supply = new Supply(manufacturer);
+                supply.AddItem(new SupplyItem(product, quantity, product.Price / 2));
+                supply.AcceptSupply(); // Увеличивает StockQuantity
+
+                _context.Supplies.Add(supply);
+                _context.SaveChanges();
+
+                return Ok($"Поставка принята! Новый остаток: {product.StockQuantity}");
             }
             catch (Exception ex)
             {
@@ -135,15 +142,16 @@ namespace ShopSystemWeb.Controllers
             }
         }
 
-        // 9. Оформить акт расхождения (с сохранением в список)
+        // 9. Создать акт расхождения
         [HttpPost("create-discrepancy-act")]
         public IActionResult CreateDiscrepancyAct([FromQuery] string actNumber, [FromQuery] string reason)
         {
             try
             {
                 var act = new DiscrepancyAct(actNumber, reason);
-                _acts.Add(act); // Сохраняем акт в список
-                return Ok($"Акт расхождения №{act.ActNumber} создан. Причина: {act.Reason}");
+                _context.Acts.Add(act);
+                _context.SaveChanges();
+                return Ok($"Акт №{act.ActNumber} создан.");
             }
             catch (Exception ex)
             {
@@ -151,29 +159,30 @@ namespace ShopSystemWeb.Controllers
             }
         }
 
-        // 10. Экспорт отчета (упрощенно: просто возвращает строку)
+        // 10. Экспорт отчёта (текстовое представление)
         [HttpGet("export-report")]
         public IActionResult ExportReport()
         {
+            var sales = _context.Sales.ToList();
             var report = new Report(DateTime.Now.AddDays(-1), DateTime.Now.AddDays(1));
-            report.Generate(_sales);
-            return Ok($"ЭКСПОРТ ОТЧЕТА:\nВыручка за сутки: {report.TotalRevenue} руб.\nКоличество продаж: {_sales.Count}");
+            report.Generate(sales);
+            return Ok($"ЭКСПОРТ:\nВыручка: {report.TotalRevenue} руб.\nПродаж: {sales.Count}");
         }
 
-        // 11. Изменить данные товара (цену и остаток)
+        // 11. Обновить данные товара (цену и остаток)
         [HttpPut("update-product")]
         public IActionResult UpdateProduct([FromQuery] int productId, [FromQuery] decimal newPrice, [FromQuery] int newStock)
         {
-            if (productId < 0 || productId >= _products.Count)
+            var product = _context.Products.Find(productId);
+            if (product == null)
                 return NotFound("Товар не найден");
 
             try
             {
-                var oldProduct = _products[productId];
-                var updatedProduct = new Product(oldProduct.Name, newPrice, newStock);
-                _products[productId] = updatedProduct;
-
-                return Ok($"Товар '{updatedProduct.Name}' обновлен! Новая цена: {newPrice}, остаток: {newStock}");
+                product.Price = newPrice;
+                product.StockQuantity = newStock;
+                _context.SaveChanges();
+                return Ok($"Товар обновлён: {product.Name}, цена: {newPrice}, остаток: {newStock}");
             }
             catch (Exception ex)
             {
@@ -188,8 +197,9 @@ namespace ShopSystemWeb.Controllers
             try
             {
                 var manufacturer = new Manufacturer(name, inn);
-                _manufacturers.Add(manufacturer);
-                return Ok($"Производитель '{name}' успешно добавлен!");
+                _context.Manufacturers.Add(manufacturer);
+                _context.SaveChanges();
+                return Ok($"Производитель '{name}' добавлен!");
             }
             catch (Exception ex)
             {
@@ -197,27 +207,28 @@ namespace ShopSystemWeb.Controllers
             }
         }
 
-        // 13. Получить список всех актов
+        // 13. Получить все акты расхождения
         [HttpGet("get-acts")]
         public IActionResult GetActs()
         {
-            return Ok(_acts);
+            return Ok(_context.Acts.ToList());
         }
 
-        // 14. Изменить статус акта (подтвердить или отклонить)
+        // 14. Изменить статус акта (подтвердить/отклонить)
         [HttpPut("change-act-status")]
         public IActionResult ChangeActStatus([FromQuery] string actNumber, [FromQuery] bool confirm)
         {
-            var act = _acts.FirstOrDefault(a => a.ActNumber == actNumber);
+            var act = _context.Acts.FirstOrDefault(a => a.ActNumber == actNumber);
             if (act == null)
-                return NotFound("Акт с таким номером не найден");
+                return NotFound("Акт не найден");
 
             if (confirm)
                 act.Confirm();
             else
                 act.Reject();
 
-            return Ok($"Статус акта №{actNumber} изменен на: {(confirm ? "Подтвержден" : "Отклонен")}");
+            _context.SaveChanges();
+            return Ok($"Статус акта №{actNumber}: {(confirm ? "Подтверждён" : "Отклонён")}");
         }
     }
 }

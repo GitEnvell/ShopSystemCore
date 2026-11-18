@@ -1,5 +1,8 @@
-var builder = WebApplication.CreateBuilder(args);
+using ShopSystemWeb;
 
+var builder = WebApplication.CreateBuilder(args);
+// Подключаем базу данных SQLite
+builder.Services.AddDbContext<AppDbContext>();
 // Add services to the container.
 
 builder.Services.AddControllers();
